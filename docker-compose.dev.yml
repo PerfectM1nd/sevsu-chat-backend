@@ -1,0 +1,28 @@
+version: '3.5'
+
+services:
+  database:
+    image: postgres
+    restart: unless-stopped
+    environment:
+      - POSTGRES_USER=$POSTGRESDB_USER
+      - POSTGRES_PASSWORD=$POSTGRESDB_PASSWORD
+      - POSTGRES_DB=$POSTGRESDB_DATABASE
+    volumes:
+      - postgres-data:/var/lib/postgresql/data
+
+  app:
+    build:
+      context: .
+      dockerfile: Dockerfile.dev
+    environment:
+      - PORT=${DOCKER_PORT}
+    ports:
+      - ${LOCAL_PORT}:${DOCKER_PORT}
+    depends_on:
+      - database
+    volumes:
+      - ./src:/app/src
+
+volumes:
+  postgres-data:
