@@ -5,28 +5,25 @@ import {
   HttpCode,
   HttpStatus,
   Post,
-  Req,
+  UseGuards,
   ValidationPipe,
 } from '@nestjs/common';
 import { AuthService } from './auth.service';
 import { Public } from '@/auth/decorators';
-import { UsersService } from '@/users/users.service';
-import { Request } from 'express';
 import { SignupDto } from '@/auth/dto/signup.dto';
 import { LoginDto } from '@/auth/dto/login.dto';
+import { getCurrentUser } from '@/auth/auth.storage';
+import { RefreshJwtGuard } from '@/auth/guards/refresh.guard';
 
 @Controller('auth')
 export class AuthController {
-  constructor(
-    private authService: AuthService,
-    private usersService: UsersService,
-  ) {}
+  constructor(private authService: AuthService) {}
 
   @Public()
   @HttpCode(HttpStatus.OK)
   @Post('login')
   signIn(@Body(new ValidationPipe()) signInDto: LoginDto) {
-    return this.authService.signIn(signInDto.username, signInDto.password);
+    return this.authService.signIn(signInDto);
   }
 
   @Public()
@@ -36,8 +33,15 @@ export class AuthController {
     return this.authService.signUp(signUpDTO);
   }
 
+  @Public()
+  @UseGuards(RefreshJwtGuard)
+  @Post('refresh')
+  async refreshToken() {
+    return await this.authService.refreshToken();
+  }
+
   @Get('me')
-  getProfile(@Req() request: Request) {
-    return this.usersService.getCurrentUser(request);
+  getProfile() {
+    return getCurrentUser();
   }
 }
