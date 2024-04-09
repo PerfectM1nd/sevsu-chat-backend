@@ -1,9 +1,17 @@
-import { Entity, Column, PrimaryGeneratedColumn } from 'typeorm';
+import {
+  Entity,
+  Column,
+  PrimaryGeneratedColumn,
+  ManyToMany,
+  OneToMany,
+} from 'typeorm';
+import { Chat } from '@/chats/entities/chat.entity';
+import { Message } from '@/chats/entities/message.entity';
 
 @Entity()
 export class User {
   @PrimaryGeneratedColumn('uuid')
-  id: number;
+  id: string;
 
   @Column()
   username: string;
@@ -28,4 +36,10 @@ export class User {
 
   @Column({ nullable: true })
   phoneNumber: string;
+
+  @ManyToMany(() => Chat, (chat) => chat.users)
+  chats: Chat[];
+
+  @OneToMany(() => Message, (message) => message.user)
+  messages: Message[];
 }
