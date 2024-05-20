@@ -5,12 +5,10 @@ import { AuthModule } from './auth/auth.module';
 import { UsersModule } from './users/users.module';
 import { TypeOrmModule } from '@nestjs/typeorm';
 import { ConfigModule, ConfigService } from '@nestjs/config';
-import { User } from '@/users/entities/user.entity';
-import { ChatsModule } from './chats/chats.module';
 import { CacheModule } from '@nestjs/cache-manager';
 import * as redisStore from 'cache-manager-redis-store';
-import { Chat } from '@/chats/entities/chat.entity';
-import { Message } from '@/chats/entities/message.entity';
+import { ChatModule } from '@/chat/chat.module';
+import { ClsModule } from 'nestjs-cls';
 
 @Module({
   imports: [
@@ -23,22 +21,29 @@ import { Message } from '@/chats/entities/message.entity';
       host: process.env.REDIS_HOST,
       port: process.env.REDIS_PORT,
     }),
+    ClsModule.forRoot({
+      global: true,
+      middleware: {
+        mount: true,
+      },
+    }),
     TypeOrmModule.forRootAsync({
       imports: [ConfigModule],
       inject: [ConfigService],
       useFactory: async (configService: ConfigService) => ({
         type: 'postgres',
         host: 'database',
-        port: 5432,
+        port: configService.get('POSTGRES_DOCKER_PORT'),
         username: configService.get('POSTGRES_USER'),
         password: configService.get('POSTGRES_PASSWORD'),
         database: configService.get('POSTGRES_DB'),
-        entities: [User, Chat, Message],
+        entities: ['dist/**/*.entity.{ts,js}'],
+        autoLoadEntities: true,
         synchronize: true,
       }),
     }),
     ConfigModule.forRoot({ isGlobal: true }),
-    ChatsModule,
+    ChatModule,
   ],
   controllers: [AppController],
   providers: [AppService],
