@@ -1,15 +1,9 @@
-import {
-  Entity,
-  Column,
-  PrimaryGeneratedColumn,
-  ManyToMany,
-  OneToMany,
-} from 'typeorm';
-import { Chat } from '@/chats/entities/chat.entity';
-import { Message } from '@/chats/entities/message.entity';
+import { Entity, Column, PrimaryGeneratedColumn, OneToMany } from 'typeorm';
+import { ChatMessage } from '@/chat/entities/chatMessage';
+import { BaseEntity } from '@/common/base-entity';
 
 @Entity()
-export class User {
+export class User extends BaseEntity {
   @PrimaryGeneratedColumn('uuid')
   id: string;
 
@@ -37,9 +31,6 @@ export class User {
   @Column({ nullable: true })
   phoneNumber: string;
 
-  @ManyToMany(() => Chat, (chat) => chat.users)
-  chats: Chat[];
-
-  @OneToMany(() => Message, (message) => message.user)
-  messages: Message[];
+  @OneToMany(() => ChatMessage, (chatMessage) => chatMessage.user)
+  chatMessages: ChatMessage[];
 }
