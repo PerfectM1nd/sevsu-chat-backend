@@ -19,11 +19,18 @@ export const AuthWsMiddleware = (
 ): SocketMiddleware => {
   return async (socket: AuthSocket) => {
     try {
-      const tokenPayload = jwtService.verify(socket.handshake?.auth?.jwt ?? '');
+      const tokenPayload = await jwtService.verifyAsync(
+        socket.handshake?.auth?.jwt ?? '',
+        {
+          secret: process.env.jwtSecretKey,
+        },
+      );
+
+      console.log(tokenPayload);
 
       cls.set('tokenPayload', tokenPayload);
       cls.set('authUser', await usersService.findById(tokenPayload.id));
-    } catch (error) {
+    } catch (e) {
       throw new UnauthorizedException();
     }
   };

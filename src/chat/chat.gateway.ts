@@ -10,7 +10,6 @@ import {
 } from '@nestjs/websockets';
 import { Socket, Server } from 'socket.io';
 import { CreateChatMessageDto } from '@/chat/dto/create-chat-message.dto';
-import { AuthWsMiddleware } from '@/auth/auth-ws.middleware';
 import { UsersService } from '@/users/users.service';
 import { AuthClsStore } from '@/cls.store';
 import { JwtService } from '@nestjs/jwt';
@@ -56,12 +55,12 @@ export class ChatGateway
   }
 
   afterInit(server: Server) {
-    const middle = AuthWsMiddleware(
-      this.jwtService,
-      this.usersService,
-      this.cls,
-    );
-    server.use(middle);
+    // const middle = AuthWsMiddleware(
+    //   this.jwtService,
+    //   this.usersService,
+    //   this.cls,
+    // );
+    // server.use(middle);
   }
 
   handleDisconnect(client: Socket) {

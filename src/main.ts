@@ -15,6 +15,12 @@ async function bootstrap() {
 
   app.use(asyncLocalStorageMiddleware);
 
+  app.enableCors({
+    origin: ['http://localhost:3000'],
+    methods: ['GET', 'POST', 'PUT', 'PATCH'],
+    credentials: true,
+  });
+
   await app.listen(5000);
 }
 bootstrap();
