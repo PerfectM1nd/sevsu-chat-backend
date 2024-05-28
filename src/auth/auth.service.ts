@@ -7,12 +7,13 @@ import {
 import { UsersService } from '@/users/users.service';
 import { JwtService } from '@nestjs/jwt';
 import { CreateUserDto } from '@/users/dto/create-user.dto';
-import { LoginDto } from '@/auth/dto/login.dto';
-import { compare, hash } from 'bcrypt';
+import { compare } from 'bcrypt';
 import { User } from '@/users/entities/user.entity';
 import { Cache } from 'cache-manager';
 import { CACHE_MANAGER } from '@nestjs/cache-manager';
-import { getCurrentTokenPayload } from '@/auth/auth.storage';
+import { ClsService } from 'nestjs-cls';
+import { AuthClsStore } from '@/cls.store';
+import { LoginDto } from '@/auth/dto/login.dto';
 
 const EXPIRE_TIME = 20 * 1000;
 
@@ -23,6 +24,7 @@ export class AuthService {
     private readonly cacheManager: Cache,
     private usersService: UsersService,
     private jwtService: JwtService,
+    private readonly cls: ClsService<AuthClsStore>,
   ) {}
 
   async signIn(dto: LoginDto) {
@@ -41,25 +43,25 @@ export class AuthService {
       user,
       backendTokens: {
         accessToken: await this.jwtService.signAsync(payload, {
-          expiresIn: '20s',
+          expiresIn: '30s',
           secret: process.env.jwtSecretKey,
         }),
         refreshToken: await this.jwtService.signAsync(payload, {
           expiresIn: '7d',
           secret: process.env.jwtRefreshTokenKey,
         }),
-        expiresIn: new Date().setTime(new Date().getTime() + EXPIRE_TIME),
+        expiresAt: new Date().setTime(Date.now() + EXPIRE_TIME),
       },
     };
   }
 
   async validateUser(dto: LoginDto) {
     const user = await this.usersService.findByUsername(dto.username);
-
     if (user && (await compare(dto.password, user.password))) {
       const { password, ...result } = user;
       return result;
     }
+
     throw new UnauthorizedException();
   }
 
@@ -74,31 +76,30 @@ export class AuthService {
         'Пользователь с таким email уже существует',
       );
     }
-    createUserDTO.password = await hash(createUserDTO.password, 10);
     return await this.usersService.create(createUserDTO);
   }
 
   async refreshToken() {
-    const tokenPayload = getCurrentTokenPayload();
+    const tokenPayload = this.cls.get('tokenPayload');
 
     const payload = {
       id: tokenPayload.id,
-      username: tokenPayload.username,
+      username: tokenPayload.username, //email
       sub: tokenPayload.sub,
     };
 
-    await this.cacheManager.set('online:' + tokenPayload.username, true);
+    await this.cacheManager.set('online:' + tokenPayload.sub.name, true);
 
     return {
       accessToken: await this.jwtService.signAsync(payload, {
-        expiresIn: '20s',
+        expiresIn: '30s',
         secret: process.env.jwtSecretKey,
       }),
       refreshToken: await this.jwtService.signAsync(payload, {
         expiresIn: '7d',
         secret: process.env.jwtRefreshTokenKey,
       }),
-      expiresIn: new Date().setTime(new Date().getTime() + EXPIRE_TIME),
+      expiresAt: new Date().setTime(Date.now() + EXPIRE_TIME),
     };
   }
 }

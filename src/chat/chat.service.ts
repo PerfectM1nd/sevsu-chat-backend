@@ -67,4 +67,15 @@ export class ChatService {
       relations: ['chatMessages', 'chatMembers'],
     });
   }
+
+  async getMyChats(): Promise<Chat[]> {
+    const user = this.cls.get('authUser');
+
+    return await this.chatRepository
+      .createQueryBuilder('chat')
+      .leftJoinAndSelect('chat.chatMembers', 'chatMember')
+      .leftJoinAndSelect('chat.chatMessages', 'chatMessage')
+      .where('chatMember.id = :userId', { userId: user.id })
+      .getMany();
+  }
 }

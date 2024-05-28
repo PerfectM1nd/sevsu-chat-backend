@@ -12,7 +12,6 @@ import { AuthService } from './auth.service';
 import { Public } from '@/auth/decorators';
 import { SignupDto } from '@/auth/dto/signup.dto';
 import { LoginDto } from '@/auth/dto/login.dto';
-import { getCurrentUser } from '@/auth/auth.storage';
 import { RefreshJwtGuard } from '@/auth/guards/refresh.guard';
 import {
   ApiBody,
@@ -20,10 +19,15 @@ import {
   ApiOkResponse,
   ApiOperation,
 } from '@nestjs/swagger';
+import { AuthClsStore } from '@/cls.store';
+import { ClsService } from 'nestjs-cls';
 
 @Controller('auth')
 export class AuthController {
-  constructor(private authService: AuthService) {}
+  constructor(
+    private authService: AuthService,
+    private readonly cls: ClsService<AuthClsStore>,
+  ) {}
 
   @Public()
   @HttpCode(HttpStatus.OK)
@@ -58,6 +62,6 @@ export class AuthController {
   @ApiOperation({ summary: 'Get current user profile' })
   @ApiOkResponse({ description: 'User profile information.' })
   getProfile() {
-    return getCurrentUser();
+    return this.cls.get('authUser');
   }
 }
