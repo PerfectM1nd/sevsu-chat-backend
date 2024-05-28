@@ -39,7 +39,7 @@ export class ChatGateway
     @MessageBody() data: CreateChatMessageDto,
   ): Promise<void> {
     await this.chatService.createMessage(data);
-    this.server.to(data.chatId).emit('receiveMessage', data);
+    this.server.emit('receiveMessage', data);
   }
 
   @SubscribeMessage('joinChat')

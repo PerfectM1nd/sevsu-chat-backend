@@ -9,7 +9,8 @@ import { Request } from 'express';
 import { IS_PUBLIC_KEY } from '@/auth/decorators';
 import { Reflector } from '@nestjs/core';
 import { UsersService } from '@/users/users.service';
-import { asyncLocalStorage } from '@/auth/auth.storage';
+import { ClsService } from 'nestjs-cls';
+import { AuthClsStore } from '@/cls.store';
 
 @Injectable()
 export class JwtGuard implements CanActivate {
@@ -17,6 +18,7 @@ export class JwtGuard implements CanActivate {
     private jwtService: JwtService,
     private usersService: UsersService,
     private reflector: Reflector,
+    private readonly cls: ClsService<AuthClsStore>,
   ) {}
 
   async canActivate(context: ExecutionContext): Promise<boolean> {
@@ -37,12 +39,12 @@ export class JwtGuard implements CanActivate {
       const tokenPayload = await this.jwtService.verifyAsync(token, {
         secret: process.env.jwtSecretKey,
       });
-      asyncLocalStorage.getStore().tokenPayload = tokenPayload;
-      asyncLocalStorage.getStore().user = await this.usersService.findById(
-        tokenPayload.id,
+      this.cls.set('tokenPayload', tokenPayload);
+      this.cls.set(
+        'authUser',
+        await this.usersService.findById(tokenPayload.id),
       );
-    } catch (e) {
-      console.log(e);
+    } catch {
       throw new UnauthorizedException();
     }
 

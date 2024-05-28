@@ -26,8 +26,6 @@ export const AuthWsMiddleware = (
         },
       );
 
-      console.log(tokenPayload);
-
       cls.set('tokenPayload', tokenPayload);
       cls.set('authUser', await usersService.findById(tokenPayload.id));
     } catch (e) {

@@ -1,4 +1,4 @@
-import { Body, Controller, Post } from '@nestjs/common';
+import { Body, Controller, Get, Post } from '@nestjs/common';
 import { ChatService } from '@/chat/chat.service';
 import { CreateChatDto } from '@/chat/dto/create-chat.dto';
 import { AddMemberDto } from '@/chat/dto/add-member.dto';
@@ -31,5 +31,26 @@ export class ChatController {
   })
   addMember(@Body() addMemberDto: AddMemberDto) {
     return this.chatService.addMember(addMemberDto.userId, addMemberDto.chatId);
+  }
+
+  @Get('messages/:chatId')
+  @ApiOperation({ summary: 'Get messages of a chat' })
+  @ApiCreatedResponse({ description: 'Messages successfully retrieved.' })
+  getChatMessages(@Body() chatId: string) {
+    return this.chatService.getChatMessages(chatId);
+  }
+
+  @Get('my-chats')
+  @ApiOperation({ summary: 'Get all chats of the authenticated user' })
+  @ApiCreatedResponse({ description: 'Chats successfully retrieved.' })
+  getMyChats() {
+    return this.chatService.getMyChats();
+  }
+
+  @Get(':id')
+  @ApiOperation({ summary: 'Get chat by ID' })
+  @ApiCreatedResponse({ description: 'Chat successfully retrieved.' })
+  getChatById(@Body() id: string) {
+    return this.chatService.getChat(id);
   }
 }
