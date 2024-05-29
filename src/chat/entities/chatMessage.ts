@@ -11,7 +11,7 @@ export class ChatMessage extends BaseEntity {
   @ManyToOne(() => Chat, (chat) => chat.chatMessages)
   chat: Chat;
 
-  @ManyToOne(() => User, (user) => user.chatMessages)
+  @ManyToOne(() => User, (user) => user.chatMessages, { eager: true })
   user: User;
 
   @Column()

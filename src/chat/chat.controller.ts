@@ -1,6 +1,5 @@
-import { Body, Controller, Get, Post } from '@nestjs/common';
+import { Body, Controller, Get, Param, Post } from '@nestjs/common';
 import { ChatService } from '@/chat/chat.service';
-import { CreateChatDto } from '@/chat/dto/create-chat.dto';
 import { AddMemberDto } from '@/chat/dto/add-member.dto';
 import {
   ApiBody,
@@ -8,18 +7,20 @@ import {
   ApiOperation,
   ApiTags,
 } from '@nestjs/swagger';
+import { CreateChatMessageDto } from '@/chat/dto/create-chat-message.dto';
 
 @ApiTags('chats')
 @Controller('chats')
 export class ChatController {
   constructor(private readonly chatService: ChatService) {}
 
-  @Post('create')
-  @ApiOperation({ summary: 'Create a new chat' })
-  @ApiCreatedResponse({ description: 'Chat successfully created.' })
-  @ApiBody({ type: CreateChatDto, description: 'Chat creation details' })
-  create(@Body() createChatDto: CreateChatDto) {
-    return this.chatService.createChat(createChatDto);
+  @Get('get-or-create/:userId')
+  @ApiOperation({ summary: 'Get or create a chat with a user' })
+  @ApiCreatedResponse({
+    description: 'Chat successfully retrieved or created.',
+  })
+  getOrCreateChat(@Param('userId') userId: string) {
+    return this.chatService.getOrCreateChat(userId);
   }
 
   @Post('add-member')
@@ -52,5 +53,16 @@ export class ChatController {
   @ApiCreatedResponse({ description: 'Chat successfully retrieved.' })
   getChatById(@Body() id: string) {
     return this.chatService.getChat(id);
+  }
+
+  @Post('send-message')
+  @ApiOperation({ summary: 'Create a message in a chat' })
+  @ApiCreatedResponse({ description: 'Message successfully created.' })
+  @ApiBody({
+    type: CreateChatMessageDto,
+    description: 'Details of the message to be created',
+  })
+  createMessage(@Body() createChatMessageDto: CreateChatMessageDto) {
+    return this.chatService.createMessage(createChatMessageDto);
   }
 }

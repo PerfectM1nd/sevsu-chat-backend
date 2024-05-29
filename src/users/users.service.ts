@@ -5,6 +5,7 @@ import { User } from './entities/user.entity';
 import { CreateUserDto } from '@/users/dto/create-user.dto';
 import { CACHE_MANAGER } from '@nestjs/cache-manager';
 import { Cache } from 'cache-manager';
+import { hashPassword } from '@/auth/utils';
 
 @Injectable()
 export class UsersService {
@@ -27,7 +28,8 @@ export class UsersService {
     return this.usersRepository.findOne({ where: { id } });
   }
 
-  create(createUserDTO: CreateUserDto): Promise<User> {
+  async create(createUserDTO: CreateUserDto): Promise<User> {
+    createUserDTO.password = await hashPassword(createUserDTO.password);
     return this.usersRepository.save(createUserDTO);
   }
 

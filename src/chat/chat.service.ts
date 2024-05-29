@@ -3,11 +3,11 @@ import { InjectRepository } from '@nestjs/typeorm';
 import { Chat } from '@/chat/entities/chat';
 import { Repository } from 'typeorm';
 import { ChatMessage } from '@/chat/entities/chatMessage';
-import { CreateChatDto } from '@/chat/dto/create-chat.dto';
 import { CreateChatMessageDto } from '@/chat/dto/create-chat-message.dto';
 import { UsersService } from '@/users/users.service';
 import { AuthClsStore } from '@/cls.store';
 import { ClsService } from 'nestjs-cls';
+import { ChatGateway } from '@/chat/chat.gateway';
 
 @Injectable()
 export class ChatService {
@@ -18,26 +18,47 @@ export class ChatService {
     private chatMessageRepository: Repository<ChatMessage>,
     private usersService: UsersService,
     private readonly cls: ClsService<AuthClsStore>,
+    private chatGateway: ChatGateway,
   ) {}
 
   async createMessage(
     createChatMessageDto: CreateChatMessageDto,
   ): Promise<ChatMessage> {
-    const user = this.cls.get('authUser');
+    const tokenPayload = this.cls.get('authUser');
+    const user = await this.usersService.findById(tokenPayload.id);
     const chat = await this.findById(createChatMessageDto.chatId);
     const chatMessage = new ChatMessage();
     chatMessage.text = createChatMessageDto.text;
     chatMessage.chat = chat;
     chatMessage.user = user;
     const createdChatMessage = this.chatMessageRepository.create(chatMessage);
-    return await this.chatMessageRepository.save(createdChatMessage);
+    const savedMessage = await this.chatMessageRepository.save(
+      createdChatMessage,
+    );
+    this.chatGateway.server.emit('receiveMessage', savedMessage);
+    return savedMessage;
   }
 
-  async createChat(createChatDto: CreateChatDto): Promise<Chat> {
-    const chat = new Chat();
-    chat.title = createChatDto.title;
-    const createdChat = this.chatRepository.create(chat);
-    return this.chatRepository.save(createdChat);
+  async getOrCreateChat(userId: string): Promise<Chat> {
+    const authUser = this.cls.get('authUser');
+    const secondUser = await this.usersService.findById(userId);
+
+    let chat = await this.chatRepository
+      .createQueryBuilder('chat')
+      .leftJoinAndSelect('chat.chatMembers', 'chatMember')
+      .leftJoinAndSelect('chat.chatMessages', 'chatMessages')
+      .where('chatMember.id IN (:...ids)', {
+        ids: [authUser.id, secondUser.id],
+      })
+      .getOne();
+
+    if (!chat) {
+      chat = new Chat();
+      chat.chatMembers = [authUser, secondUser];
+      await this.chatRepository.save(chat);
+    }
+
+    return chat;
   }
 
   async addMember(userId: string, chatId: string): Promise<Chat> {
@@ -75,6 +96,7 @@ export class ChatService {
       .createQueryBuilder('chat')
       .leftJoinAndSelect('chat.chatMembers', 'chatMember')
       .leftJoinAndSelect('chat.chatMessages', 'chatMessage')
+      .leftJoinAndSelect('chatMessage.user', 'user') // Join chatMessage.user
       .where('chatMember.id = :userId', { userId: user.id })
       .getMany();
   }

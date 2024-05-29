@@ -26,6 +26,9 @@ import { ClsModule } from 'nestjs-cls';
       middleware: {
         mount: true,
       },
+      interceptor: {
+        mount: true,
+      },
     }),
     TypeOrmModule.forRootAsync({
       imports: [ConfigModule],
