@@ -1,6 +1,5 @@
 import { BaseEntity } from '@/common/base-entity';
 import {
-  Column,
   Entity,
   JoinTable,
   ManyToMany,
@@ -15,13 +14,12 @@ export class Chat extends BaseEntity {
   @PrimaryGeneratedColumn('uuid')
   id: string;
 
-  @Column()
-  title: string;
-
-  @ManyToMany(() => User)
+  @ManyToMany(() => User, { eager: true })
   @JoinTable()
   chatMembers: User[];
 
-  @OneToMany(() => ChatMessage, (chatMessage) => chatMessage.chat)
+  @OneToMany(() => ChatMessage, (chatMessage) => chatMessage.chat, {
+    eager: true,
+  })
   chatMessages: ChatMessage[];
 }
