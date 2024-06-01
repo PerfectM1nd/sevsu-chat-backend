@@ -1,11 +1,13 @@
 import { Inject, Injectable } from '@nestjs/common';
-import { Repository } from 'typeorm';
+import { Not, Repository } from 'typeorm';
 import { InjectRepository } from '@nestjs/typeorm';
 import { User } from './entities/user.entity';
 import { CreateUserDto } from '@/users/dto/create-user.dto';
 import { CACHE_MANAGER } from '@nestjs/cache-manager';
 import { Cache } from 'cache-manager';
 import { hashPassword } from '@/auth/utils';
+import { ClsService } from 'nestjs-cls';
+import { AuthClsStore } from '@/cls.store';
 
 @Injectable()
 export class UsersService {
@@ -14,6 +16,7 @@ export class UsersService {
     private readonly cacheManager: Cache,
     @InjectRepository(User)
     private usersRepository: Repository<User>,
+    private readonly cls: ClsService<AuthClsStore>,
   ) {}
 
   findByUsername(username: string): Promise<User> {
@@ -34,7 +37,12 @@ export class UsersService {
   }
 
   findAll(): Promise<User[]> {
-    return this.usersRepository.find();
+    const authUser = this.cls.get('authUser');
+    return this.usersRepository.find({
+      where: {
+        id: Not(authUser.id),
+      },
+    });
   }
 
   findByFullName(fullName: string): Promise<User[]> {

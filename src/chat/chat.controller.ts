@@ -1,4 +1,4 @@
-import { Body, Controller, Get, Param, Post } from '@nestjs/common';
+import { Body, Controller, Delete, Get, Param, Post } from '@nestjs/common';
 import { ChatService } from '@/chat/chat.service';
 import { AddMemberDto } from '@/chat/dto/add-member.dto';
 import {
@@ -37,7 +37,7 @@ export class ChatController {
   @Get('messages/:chatId')
   @ApiOperation({ summary: 'Get messages of a chat' })
   @ApiCreatedResponse({ description: 'Messages successfully retrieved.' })
-  getChatMessages(@Body() chatId: string) {
+  getChatMessages(@Param('chatId') chatId: string) {
     return this.chatService.getChatMessages(chatId);
   }
 
@@ -48,11 +48,11 @@ export class ChatController {
     return this.chatService.getMyChats();
   }
 
-  @Get(':id')
+  @Get(':chatId')
   @ApiOperation({ summary: 'Get chat by ID' })
   @ApiCreatedResponse({ description: 'Chat successfully retrieved.' })
-  getChatById(@Body() id: string) {
-    return this.chatService.getChat(id);
+  getChatById(@Param('chatId') chatId: string) {
+    return this.chatService.getChat(chatId);
   }
 
   @Post('send-message')
@@ -64,5 +64,21 @@ export class ChatController {
   })
   createMessage(@Body() createChatMessageDto: CreateChatMessageDto) {
     return this.chatService.createMessage(createChatMessageDto);
+  }
+
+  @Delete('messages/:messageId')
+  @ApiOperation({ summary: 'Deletes a message from a chat' })
+  @ApiCreatedResponse({ description: 'Message successfully deleted.' })
+  deleteMessage(@Param('messageId') messageId: string) {
+    return this.chatService.deleteMessage(messageId);
+  }
+
+  @Delete(':chatId')
+  @ApiOperation({ summary: 'Deletes a chat with all related messages' })
+  @ApiCreatedResponse({
+    description: 'Chat and all related messages successfully deleted.',
+  })
+  deleteChat(@Param('chatId') chatId: string) {
+    return this.chatService.deleteChat(chatId);
   }
 }

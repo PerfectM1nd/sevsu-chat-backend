@@ -1,4 +1,4 @@
-import { Injectable } from '@nestjs/common';
+import { Injectable, NotFoundException } from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
 import { Chat } from '@/chat/entities/chat';
 import { Repository } from 'typeorm';
@@ -43,22 +43,47 @@ export class ChatService {
     const authUser = this.cls.get('authUser');
     const secondUser = await this.usersService.findById(userId);
 
-    let chat = await this.chatRepository
-      .createQueryBuilder('chat')
-      .leftJoinAndSelect('chat.chatMembers', 'chatMember')
-      .leftJoinAndSelect('chat.chatMessages', 'chatMessages')
-      .where('chatMember.id IN (:...ids)', {
-        ids: [authUser.id, secondUser.id],
-      })
-      .getOne();
+    let chat = await this.getChatByUsers(authUser.id, secondUser.id);
 
     if (!chat) {
       chat = new Chat();
       chat.chatMembers = [authUser, secondUser];
-      await this.chatRepository.save(chat);
+      chat = await this.chatRepository.save(chat);
+      chat = await this.getChat(chat.id);
     }
 
     return chat;
+  }
+
+  async getChatByUsers(
+    firstUserId: string,
+    secondUserId: string,
+  ): Promise<Chat | null> {
+    const userChatsIds = (
+      await this.chatRepository
+        .createQueryBuilder('chat')
+        .innerJoin('chat.chatMembers', 'chatMember')
+        .where('chatMember.id = :firstUserId', { firstUserId })
+        .getMany()
+    ).map((chat) => chat.id);
+
+    const chatsWithUsers = await this.chatRepository
+      .createQueryBuilder('chat')
+      .innerJoinAndSelect('chat.chatMembers', 'chatMember')
+      .leftJoinAndSelect('chat.chatMessages', 'chatMessage')
+      .leftJoinAndSelect('chatMessage.user', 'user')
+      .whereInIds(userChatsIds)
+      .getMany();
+
+    for (const chat of chatsWithUsers) {
+      for (const user of chat.chatMembers) {
+        if (user.id === secondUserId) {
+          return chat;
+        }
+      }
+    }
+
+    return null;
   }
 
   async addMember(userId: string, chatId: string): Promise<Chat> {
@@ -77,15 +102,22 @@ export class ChatService {
   }
 
   async getChatMessages(chatId: string): Promise<ChatMessage[]> {
-    return await this.chatMessageRepository.find({
-      where: { chat: { id: chatId } },
+    const chat = await this.chatRepository.findOne({
+      where: { id: chatId },
+      relations: ['chatMessages', 'chatMessages.user'],
     });
+
+    if (!chat) {
+      throw new NotFoundException('Chat not found');
+    }
+
+    return chat.chatMessages;
   }
 
   async getChat(id: string): Promise<Chat> {
     return await this.chatRepository.findOne({
       where: { id },
-      relations: ['chatMessages', 'chatMembers'],
+      relations: ['chatMessages', 'chatMessages.user', 'chatMembers'],
     });
   }
 
@@ -99,5 +131,24 @@ export class ChatService {
       .leftJoinAndSelect('chatMessage.user', 'user') // Join chatMessage.user
       .where('chatMember.id = :userId', { userId: user.id })
       .getMany();
+  }
+
+  async deleteMessage(messageId: string): Promise<void> {
+    await this.chatMessageRepository.delete(messageId);
+  }
+
+  async deleteChat(chatId: string): Promise<void> {
+    const chat = await this.chatRepository.findOne({
+      where: { id: chatId },
+      relations: ['chatMessages'],
+    });
+
+    if (!chat) {
+      throw new NotFoundException('Chat not found');
+    }
+
+    await this.chatMessageRepository.remove(chat.chatMessages);
+
+    await this.chatRepository.remove(chat);
   }
 }
