@@ -124,13 +124,10 @@ export class ChatService {
   async getMyChats(): Promise<Chat[]> {
     const user = this.cls.get('authUser');
 
-    return await this.chatRepository
-      .createQueryBuilder('chat')
-      .leftJoinAndSelect('chat.chatMembers', 'chatMember')
-      .leftJoinAndSelect('chat.chatMessages', 'chatMessage')
-      .leftJoinAndSelect('chatMessage.user', 'user') // Join chatMessage.user
-      .where('chatMember.id = :userId', { userId: user.id })
-      .getMany();
+    return await this.chatRepository.find({
+      where: { chatMembers: { id: user.id } },
+      relations: ['chatMessages', 'chatMessages.user', 'chatMembers'],
+    });
   }
 
   async deleteMessage(messageId: string): Promise<void> {
